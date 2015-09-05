@@ -11,18 +11,21 @@ public class HeroMovement : MonoBehaviour {
 	public NavMeshAgent navAgent;
 	public Transform sprite; 
 
-	private bool canFire;
+	private bool behindCover;
 	private float nextFire = 0f;
 	private float slideDuration = 0.5f;
 	private float speed = 5;
 	private bool automaticFire = false;
 	private float autoShootingBulletCount;
+	private GameObject[] visibleEnemies;
+	private int obstacleLayerMask;
 
 
 	// Use this for initialization
 	void Start () {
 		navAgent = GetComponent<NavMeshAgent> ();
-		canFire = false;
+		obstacleLayerMask = LayerMask.NameToLayer ("Obstacle");
+		behindCover = false;
 		fireRate = 1 / fireRate;
 	}
 	
@@ -33,12 +36,12 @@ public class HeroMovement : MonoBehaviour {
 
 	public void SetFirePoint (Transform newFirePoint) {
 		firePoint = newFirePoint;
-		canFire = true;
+		behindCover = true;
 		StopSliding();
 	}
 
 	public void UnsetFirePoint () {
-		canFire = false;
+		behindCover = false;
 	}
 
 	public void SwitchFireMode (bool automaticFire) {
@@ -50,8 +53,30 @@ public class HeroMovement : MonoBehaviour {
 	}
 	
 	public void Shoot() {
-		bool shootingNotTooFast = canFire && Time.time > nextFire;
-		if (!shootingNotTooFast) return;
+		bool shootingTooFast =  Time.time < nextFire;
+		if (shootingTooFast) return;
+
+
+
+		if (!behindCover) {
+			visibleEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+			float closestEnemyDistance = Mathf.Infinity;
+			GameObject closestEnemy = null;
+			foreach (GameObject enemy in visibleEnemies) {
+				if (!Physics.Raycast(transform.position, enemy.transform.position, Mathf.Infinity,  ~obstacleLayerMask)) {
+					Debug.DrawLine(transform.position, enemy.transform.position);
+					float enemyDistance = Vector3.Distance(transform.position, enemy.transform.position);
+					if (enemyDistance < closestEnemyDistance) {
+						closestEnemy = enemy;
+					}
+				}
+			}
+			if (closestEnemy) {
+				Vector3 between = closestEnemy.transform.position - transform.position;
+				firePoint.position = transform.position + between.normalized*0.25f;
+				firePoint.LookAt(closestEnemy.transform);
+			}
+		}
 
 
 		Quaternion bulletRotation = firePoint.rotation;
@@ -60,17 +85,19 @@ public class HeroMovement : MonoBehaviour {
 			bulletRotation = Quaternion.Euler(bulletRotation.eulerAngles.x, bulletRotation.eulerAngles.y + Random.Range(-randAngleDiff, randAngleDiff), bulletRotation.eulerAngles.z);
 			autoShootingBulletCount++;
 		}
-
-
+		
+		
 		nextFire = Time.time + fireRate;
 		Instantiate (bulletPrefab, 
 		             new Vector3(firePoint.position.x + Random.Range(-0.25f, 0.25f),  firePoint.position.y, firePoint.position.z + Random.Range(-0.25f, 0.25f)),
 		             bulletRotation);
 
+
+
 	}
 
 	public void Slide () {
-		if (!canFire) {
+		if (!behindCover) {
 			Debug.Log ("SLIDING");
 			navAgent.speed = speed * 2;
 			Invoke("StopSliding", slideDuration);	
