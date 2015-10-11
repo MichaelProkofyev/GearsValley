@@ -4,7 +4,7 @@ using System.Collections;
 public class InputHandler : MonoBehaviour {
 
 	
-	private LayerMask clickableLayerMask;
+	private int clickableLayerMask;
 	private HeroMovement player;
 	private Vector2 touchStartPosition;
 	private bool shooting = false;
@@ -13,11 +13,15 @@ public class InputHandler : MonoBehaviour {
 	private float touchStartTime;
 
 
+	void Awake () {
+		clickableLayerMask = LayerMask.GetMask("Clickable");
+		Function(4);
+	}
 
 	// Use this for initialization
 	void Start () {
 		player = GameObject.FindWithTag("Player").GetComponent<HeroMovement>();
-		clickableLayerMask = 1 << 8;//LayerMask.NameToLayer ("Clickable");
+//		clickableLayerMask = 1 << 8;//LayerMask.NameToLayer ("Clickable");
 	}
 	
 	// Update is called once per frame
@@ -49,7 +53,7 @@ public class InputHandler : MonoBehaviour {
 		if (Input.GetButton("Fire1")) {
 			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 			RaycastHit raycastHit;
-			if (Physics.Raycast(ray,out raycastHit, clickableLayerMask )) {
+			if (Physics.Raycast(ray,out raycastHit, Mathf.Infinity, clickableLayerMask)) {
 				player.MoveTo(raycastHit.collider.gameObject.transform.position);
 			} else {
 				if (!shooting) {
@@ -67,6 +71,10 @@ public class InputHandler : MonoBehaviour {
 		if (Input.GetButton("Jump")) {
 			player.Slide();
 		}
+	}
+
+	void Function (float x = Mathf.Infinity, int y = 10) {
+		Debug.Log("X: " + x + "Y: " + y);
 	}
 
 	void HandleTouches ()	{

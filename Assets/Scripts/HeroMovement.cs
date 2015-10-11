@@ -12,6 +12,7 @@ public class HeroMovement : MonoBehaviour {
 	public Transform sprite; 
 
 	private bool behindCover;
+	private bool sliding;
 	private float nextFire = 0f;
 	private float slideDuration = 0.5f;
 	private float speed = 5;
@@ -19,10 +20,12 @@ public class HeroMovement : MonoBehaviour {
 	private float autoShootingBulletCount;
 	private GameObject[] visibleEnemies;
 	private int obstacleLayerMask;
+	private CameraController cameraController;
 
 
 	// Use this for initialization
 	void Start () {
+		cameraController = Camera.main.GetComponent<CameraController>();
 		navAgent = GetComponent<NavMeshAgent> ();
 		obstacleLayerMask = LayerMask.NameToLayer ("Obstacle");
 		behindCover = false;
@@ -35,7 +38,8 @@ public class HeroMovement : MonoBehaviour {
 	}
 
 	public void SetFirePoint (Transform newFirePoint) {
-		firePoint = newFirePoint;
+		firePoint.position = newFirePoint.position;
+		firePoint.rotation = newFirePoint.rotation;
 		behindCover = true;
 		StopSliding();
 	}
@@ -54,7 +58,7 @@ public class HeroMovement : MonoBehaviour {
 	
 	public void Shoot() {
 		bool shootingTooFast =  Time.time < nextFire;
-		if (shootingTooFast) return;
+		if (shootingTooFast || sliding) return;
 
 
 
@@ -71,11 +75,12 @@ public class HeroMovement : MonoBehaviour {
 					}
 				}
 			}
-			if (closestEnemy) {
-				Vector3 between = closestEnemy.transform.position - transform.position;
-				firePoint.position = transform.position + between.normalized*0.25f;
-				firePoint.LookAt(closestEnemy.transform);
-			}
+			if (!closestEnemy) return;
+			Vector3 between = closestEnemy.transform.position - transform.position;
+			firePoint.position = transform.position + between.normalized*0.25f;
+			firePoint.LookAt(closestEnemy.transform);
+
+
 		}
 
 
@@ -91,6 +96,7 @@ public class HeroMovement : MonoBehaviour {
 		Instantiate (bulletPrefab, 
 		             new Vector3(firePoint.position.x + Random.Range(-0.25f, 0.25f),  firePoint.position.y, firePoint.position.z + Random.Range(-0.25f, 0.25f)),
 		             bulletRotation);
+		cameraController.StartShake();
 
 
 
@@ -98,6 +104,7 @@ public class HeroMovement : MonoBehaviour {
 
 	public void Slide () {
 		if (!behindCover) {
+			sliding = true;
 			Debug.Log ("SLIDING");
 			navAgent.speed = speed * 2;
 			Invoke("StopSliding", slideDuration);	
@@ -106,6 +113,7 @@ public class HeroMovement : MonoBehaviour {
 
 	void StopSliding () {
 		navAgent.speed = speed;
+		sliding = false;
 	}
 
 	public void MoveTo (Vector3 dest) {

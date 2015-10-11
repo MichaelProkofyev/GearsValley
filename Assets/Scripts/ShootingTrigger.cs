@@ -18,7 +18,7 @@ public class ShootingTrigger : MonoBehaviour {
 	}
 
 	void OnTriggerStay (Collider other) {
-		Debug.Log ("Trigger stay");
+//		Debug.Log (other.gameObject.name);
 		if (other == player.GetComponent<BoxCollider> ()) {
 			if (player.navAgent.velocity == Vector3.zero) {
 				player.SetFirePoint(firePoint);
